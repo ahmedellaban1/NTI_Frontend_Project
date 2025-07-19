@@ -1,6 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="icon" type="image/png" href="images/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="images/favicon.svg" />
+    <link rel="shortcut icon" href="images/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png" />
+    <link rel="manifest" href="images/site.webmanifest" />
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SyntaxMaestro - Empowering Future Developers</title>
@@ -13,8 +18,11 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg fixed-top">
         <div class="container">
-            <a class="navbar-brand" href="#">SyntaxMaestro</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+    <a class="navbar-brand" href="#">
+        <img src="images/dark-logo.png" alt="dark-logo" style="width: 50px; height: 50px; margin-right: 10px;">
+        SyntaxMaestro
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
@@ -45,7 +53,10 @@
     <!-- Hero Section -->
     <section id="home" class="hero-section">
         <div class="container">
-            <div class="hero-content">
+                <div class="text-center mb-4">
+                    <img src="images/logo.png" alt="logo" style="width: 200px; height: 200px;">
+                </div>            
+                <div class="hero-content">
                 <h1 class="hero-title">Empowering Future Developers</h1>
                 <p class="hero-subtitle">Master the art of coding with expert mentorship, cutting-edge tools, and a vibrant community of passionate developers.</p>
                 <a href="#services" class="btn cta-button">Start Exploring</a>
@@ -214,7 +225,7 @@
     <div id="app">
         <!-- Chatbot Button -->
         <button class="chatbot-button" @click="openChat">
-            <span class="chat-icon">💬</span>
+            <span class="chat-icon">🤖</span>
         </button>
 
         <!-- Chat Popup -->
@@ -379,7 +390,7 @@
         `;
         document.head.appendChild(style);
     </script>
-     <script>
+     <!-- <script>
         const { createApp } = Vue;
 
         createApp({
@@ -487,6 +498,143 @@
                 }
             }
         }).mount('#app');
+    </script> -->
+
+    <script>
+        const { createApp } = Vue;
+
+createApp({
+    data() {
+        return {
+            showChat: false,
+            newMessage: '',
+            isTyping: false,
+            messages: [
+                {
+                    id: 1,
+                    type: 'bot',
+                    text: 'Hello! How can I help you today?'
+                }
+            ]
+            // You can add these if needed for your backend
+            // conversationId: null,
+            // userId: null
+        }
+    },
+    methods: {
+        openChat() {
+            this.showChat = true;
+            this.$nextTick(() => {
+                this.scrollToBottom();
+            });
+        },
+        closeChat() {
+            this.showChat = false;
+        },
+        async sendMessage() {
+            if (!this.newMessage.trim() || this.isTyping) return;
+            
+            const userMessage = {
+                id: Date.now(),
+                type: 'user',
+                text: this.newMessage
+            };
+            
+            this.messages.push(userMessage);
+            const messageText = this.newMessage;
+            this.newMessage = '';
+            this.scrollToBottom();
+            
+            // Show typing indicator
+            this.isTyping = true;
+            
+            try {
+                // Call your Django backend API
+                const response = await this.getAIResponse(messageText);
+                
+                this.isTyping = false;
+                const botResponse = {
+                    id: Date.now() + 1,
+                    type: 'bot',
+                    text: response
+                };
+                this.messages.push(botResponse);
+                this.scrollToBottom();
+            } catch (error) {
+                console.error('Error getting AI response:', error);
+                this.isTyping = false;
+                const errorResponse = {
+                    id: Date.now() + 1,
+                    type: 'bot',
+                    text: 'Sorry, I encountered an error. Please try again.'
+                };
+                this.messages.push(errorResponse);
+                this.scrollToBottom();
+            }
+        },
+        async getAIResponse(message) {
+            // Your Django endpoint
+            const API_URL = 'http://127.0.0.1:8000/chatbot/chat/';
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': this.getCSRFToken(), // Django CSRF protection
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        // Add any additional data you want to send
+                        // conversation_id: this.conversationId,
+                        // user_id: this.userId
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // Adjust based on your Django backend response structure
+                // Common Django response patterns:
+                return data.response || data.message || data.reply || data.answer;
+                
+            } catch (error) {
+                console.error('API Error:', error);
+                throw error;
+            }
+        },
+        getCSRFToken() {
+            // Get CSRF token from Django
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+            if (csrfToken) {
+                return csrfToken;
+            }
+            
+            // Alternative: get from cookies
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                const [name, value] = cookie.trim().split('=');
+                if (name === 'csrftoken') {
+                    return value;
+                }
+            }
+            
+            // If no CSRF token found, you might need to disable CSRF for this endpoint
+            // or implement proper CSRF handling in your Django view
+            return '';
+        },
+        scrollToBottom() {
+            this.$nextTick(() => {
+                if (this.$refs.messagesContainer) {
+                    this.$refs.messagesContainer.scrollTop = this.$refs.messagesContainer.scrollHeight;
+                }
+            });
+        }
+    }
+}).mount('#app');
     </script>
 </body>
 </html>
